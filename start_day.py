@@ -1,4 +1,5 @@
 import os
+import webbrowser
 
 
 def start_day(y, d):
@@ -26,6 +27,8 @@ def start_day(y, d):
             new_file.write(template)
     # open the new file in the editor
     os.system("code " + new_path)
+    # Open the aoc website
+    webbrowser.open(f'https://adventofcode.com/{y}/day/{d}')
 
 
 if __name__ == "__main__":

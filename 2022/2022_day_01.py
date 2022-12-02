@@ -3,20 +3,18 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-from aocd import get_data, submit
+from aocd import lines, get_day_and_year
 from utils import *
 
 # Handle data
-data = get_data(day=1, year=2022)
-
-def print_data():
-    print(data)
+d, y = get_day_and_year()
+# data = get_data(day=1, year=2022)
 
 def get_data():
     elves = []
     i = 0
     elves.append(0)
-    for line in data.splitlines():
+    for line in lines:
         if line == "":
             i += 1
             elves.append(0)
@@ -41,6 +39,6 @@ def part2():
 
 # Main 
 if __name__ == "__main__":
-    print("-- AoC 2022 - Day 1 --\n")
+    print("-- AoC 2022 - Day " + d + " --\n")
     part("One", 1, 2022, part1, True)
     part("Two", 1, 2022, part2, True)
