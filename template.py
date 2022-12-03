@@ -1,16 +1,12 @@
 # AoC YEAR - Day DAY - Mike D
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-
+import string
 from aocd import get_data, submit
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from utils import *
 
-# Handle data
 data = get_data(day=DAY, year=YEAR)
-
-def print_data():
-    print(data)
 
 # Run Part 1
 def part1():
