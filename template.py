@@ -8,16 +8,17 @@ from utils import *
 
 data = get_data(day=DAY, year=YEAR)
 
-# Run Part 1
+def test_cases():
+    pass
+
 def part1():
     return None
     
-# Run Part 2
 def part2():
     return None
 
-# Main 
 if __name__ == "__main__":
     print("-- AoC YEAR - Day DAY --\n")
+    tests(test_cases, False)
     part("One", DAY, YEAR, part1, False)
     part("Two", DAY, YEAR, part2, False)

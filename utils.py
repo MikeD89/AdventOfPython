@@ -23,3 +23,10 @@ def part(part, day, year, func, submit_to_aoc):
     else:
         print("-  Not Submitting!")
     print()
+
+def tests(runner, do):
+    if not do:
+        return
+    print("-  Running Tests:")
+    str(time_it(runner)())
+    print()
