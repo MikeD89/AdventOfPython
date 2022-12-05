@@ -1,3 +1,5 @@
+import os
+import sys
 from aocd import get_data, submit
 
 def time_it(func, name=None):
@@ -30,3 +32,7 @@ def tests(runner, do):
     print("-  Running Tests:")
     str(time_it(runner)())
     print()
+
+def get_testdata(day, year):
+    testdata_path = os.path.join(os.path.dirname(__file__), str(year),  "testdata", str(year) + "_day_" + f"{day:02}" + ".txt")
+    return open(testdata_path, "r").read()
