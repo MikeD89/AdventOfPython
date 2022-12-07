@@ -13,10 +13,10 @@ def run(input):
     return None
 
 def part1():
-    return run(data)
+    return run(testdata)
     
 def part2():
-    return run(data)
+    return run(testdata)
 
 if __name__ == "__main__":
     print("-- AoC YEAR - Day DAY --\n")
