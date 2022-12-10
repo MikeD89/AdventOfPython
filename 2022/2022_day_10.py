@@ -66,11 +66,7 @@ def run(input):
 
 def part1():
     return run(data)
-    
-def part2():
-    return run(testdata)
 
 if __name__ == "__main__":
     print("-- AoC 2022 - Day 10 --\n")
     part("One", 10, 2022, part1, True)
-    part("Two", 10, 2022, part2, False)
