@@ -33,14 +33,9 @@ def print_monkiez(monkeys):
         print(i, m["items"])
 
 def post_inspect_part_1(worry, v):
-    # worry / 3 + rnddown
     return worry // 3
 
 def post_inspect_part_2(worry, v):
-    # worry / 3 + rnddown
-    #  is worry a prime number
-    #  if so, worry = 1
-    #  else worry = 0
     return worry % v
 
 def round(monkeys, rounds, post_inspect):
