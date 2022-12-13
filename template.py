@@ -9,14 +9,13 @@ from utils import *
 data = get_data(day=DAY, year=YEAR)
 testdata = get_testdata(day=DAY, year=YEAR)
 
-def run(input):
-    return None
-
 def part1():
-    return run(testdata)
+    input = testdata
+    return None
     
 def part2():
-    return run(testdata)
+    input = testdata
+    return None
 
 if __name__ == "__main__":
     print("-- AoC YEAR - Day DAY --\n")
