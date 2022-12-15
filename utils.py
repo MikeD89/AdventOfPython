@@ -36,3 +36,6 @@ def tests(runner, do):
 def get_testdata(day, year):
     testdata_path = os.path.join(os.path.dirname(__file__), str(year),  "testdata", str(year) + "_day_" + f"{day:02}" + ".txt")
     return open(testdata_path, "r").read()
+
+def print_grid(grid):
+    print('\n'.join(''.join(str(x) for x in row) for row in grid))
