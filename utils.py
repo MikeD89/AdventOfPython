@@ -37,5 +37,8 @@ def get_testdata(day, year):
     testdata_path = os.path.join(os.path.dirname(__file__), str(year),  "testdata", str(year) + "_day_" + f"{day:02}" + ".txt")
     return open(testdata_path, "r").read()
 
+def make_grid(w, h, fill):
+    return [[fill] * w for _ in range(h)]
+
 def print_grid(grid):
     print('\n'.join(''.join(str(x) for x in row) for row in grid))
