@@ -1,4 +1,5 @@
 # AoC 2022 - Day 15 - Mike D
+import math
 import sys
 import os
 import string
@@ -9,6 +10,11 @@ from utils import *
 
 data = get_data(day=15, year=2022)
 testdata = get_testdata(day=15, year=2022)
+
+
+def vector_length(v):
+    return math.sqrt(v[0] * v[0] + v[1] * v[1])
+
 
 def calculate_manhattan_distance(x1, y1, x2, y2):
     return abs(x1 - x2) + abs(y1 - y2)
@@ -66,16 +72,52 @@ def find_intersections(sensors, beacons, minP, maxP, y):
 
     return len(v)
 
-def find_point(sensors, beacons, minP, maxP, y):
-    for i in range(len(sensors)):
+def subtract_vector(v1, v2):
+    return (v1[0] - v2[0], v1[1] - v2[1])
+
+def find_point(sensors, beacons, minP, maxP, limit):
+    for i in tqdm(range(len(sensors))):
         sensor = sensors[i]
         beacon = beacons[i]
         distance = calculate_manhattan_distance(sensor[0], sensor[1], beacon[0], beacon[1])
-
-        # get perimeter
         distance += 1
-        
 
+        vecs = [(sensor[0] - distance, sensor[1]),
+                (sensor[0], sensor[1] - distance),
+                (sensor[0] + distance, sensor[1]),
+                (sensor[0], sensor[1] + distance)]
+
+        perimiter = []
+        for i, v in enumerate(vecs):
+            v1 = vecs[i+1] if i < len(vecs) - 1 else vecs[0]
+            p = v
+            dX = 1 if v1[0] > v[0] else -1
+            dY = 1 if v1[1] > v[1] else -1
+            while True:
+                last = True if p[0] == v1[0] and p[1] == v1[1] else False
+                perimiter.append(p)
+                p = (p[0] + dX, p[1] + dY)
+                if last:
+                    break
+
+        for p in perimiter:
+            if p[0] > limit or p[1] > limit or p[0] < 0 or p[1] < 0:
+                continue
+
+            valid = True
+            for j in range(len(sensors)):
+                second_sensor = sensors[j]
+                second_beacon = beacons[j]
+                bD = calculate_manhattan_distance(second_sensor[0], second_sensor[1], second_beacon[0], second_beacon[1])
+                tD = calculate_manhattan_distance(second_sensor[0], second_sensor[1], p[0], p[1])
+
+                if tD <= bD:
+                    valid = False
+                    break
+            if valid:
+                return p[0] * 4000000 + p[1]
+    
+    return None
         
 
 def part1():
@@ -87,7 +129,7 @@ def part1():
     return find_intersections(sensors, beacons, minP, maxP, y)  
     
 def part2():
-    tD = True
+    tD = False
     input = testdata if tD else data
     (sensors, beacons, minP, maxP) = parse_data(input)
 
@@ -97,44 +139,4 @@ def part2():
 if __name__ == "__main__":
     print("-- AoC 2022 - Day 15 --\n")
     # part("One", 15, 2022, part1, True)
-    part("Two", 15, 2022, part2, False)
-
-
-
-
-
-
-
-    # print("- Populate Grid")
-    # width = maxX + offsetX + 1 + max_distance
-    # height = maxY + offsetY + 1 + max_distance
-    # b = [0] * (width * height)
-    # print(width, height)
-    # grid = make_grid(width, height, ".")
-    # for i in range(len(sensors)):
-    #     sensors[i] = [sensors[i][0] + offsetX, sensors[i][1] + offsetY]
-    #     beacons[i] = [beacons[i][0] + offsetX, beacons[i][1] + offsetY]
-    #     grid[sensors[i][1]][sensors[i][0]] = "S"
-    #     grid[beacons[i][1]][beacons[i][0]] = "B"
-
-    # print("- Handle Sensors")
-    # for i in range(len(sensors)):
-    #     print("-- Sensor " + str(i))
-    #     sensor = sensors[i]
-    #     beacon = beacons[i]
-    #     distance = calculate_manhattan_distance(sensor[0], sensor[1], beacon[0], beacon[1])
-
-    #     minBeaconX = sensor[0] - distance
-    #     maxBeaconX = sensor[0] + distance
-    #     minBeaconY = sensor[1] - distance
-    #     maxBeaconY = sensor[1] + distance
-
-    #     for y in range(minBeaconY, maxBeaconY + 1):
-    #         for x in range(minBeaconX, maxBeaconX + 1):
-    #             if abs(calculate_manhattan_distance(sensor[0], sensor[1], x, y)) <= distance:
-    #                 if y < 0 or y >= len(grid) or x < 0 or x >= len(grid[y]):
-    #                     print("not big enough")
-    #                     exit()
-    #                 elif grid[y][x] == ".":
-    #                     grid[y][x] = "#"
-    # return grid, offsetX, offsetY
+    part("Two", 15, 2022, part2, True)
