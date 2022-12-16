@@ -95,135 +95,181 @@ def get_length(graph, points, start, destinations):
         last = current
     return sum(l)
 
-def generate_perms(graph, start, destinations, max_length):
-    n = len(destinations)
-    nset = set(range(n))
-    def inner(p):
-        l = len(p)
-        if l > 1:
-            length = get_length(graph, p, start, destinations)
-            if length > max_length:
-                return [p]
-        if l == n:
-            return [p]
-        return [r for i in nset - set(p)
-                for r in inner(p + (i,))]
-    return inner(())
-
-def score_perms(graph, start, destinations, perms, max_length, elephant=True):
-    highest = 0
-    totalValves = sum([graph[x]['rate'] for x in destinations if graph[x]['rate'] > 0])
-    for perm in tqdm(perms):
-        state = []
+def score_perms(perm, totalValves, highest, graph, start, max_length, elephant):
+    state = []
+    state.append({
+        'points': list(perm) if not elephant else list(perm[0]),
+        'moving': -1,
+        'current': start
+    })
+    if elephant:
         state.append({
-            'points': list(perm) if not elephant else list(perm[0]),
+            'points': list(perm[1]) if elephant else [],
             'moving': -1,
             'current': start
         })
-        if elephant:
-            state.append({
-                'points': list(perm[1]) if elephant else [],
-                'moving': -1,
-                'current': start
-            })
 
-        score=0
-        open=0
-        for i in range(max_length):
-            score += open
-            remaining = (totalValves - open) * (max_length - i)
+    score=0
+    open=0
+    for i in range(max_length):
+        score += open
 
-            if(remaining < highest):
-                break
+        remaining = (totalValves) * (max_length - i)
+        if((score + remaining) < highest):
+            return 0
 
-            for person in state:                
-                if person['moving'] <= 0 and len(person['points']) > 0:
-                    # move
-                    next = person['points'].pop(0)
-                    next = destinations[next]
-                    person['moving'] = graph[person['current']]['travel'][next]
-                    person['current'] = next
-                else:
-                    person['moving'] -= 1
-                    if person['moving'] == 0:
-                        # open
-                        open += graph[person['current']]['rate']
+        for person in state:                
+            if person['moving'] <= 0 and len(person['points']) > 0:
+                # move
+                next = person['points'].pop(0)
+                person['moving'] = graph[person['current']]['travel'][next]
+                person['current'] = next
+            else:
+                person['moving'] -= 1
+                if person['moving'] == 0:
+                    # open
+                    open += graph[person['current']]['rate']
 
-        if score > highest:
-            highest = score
-    return highest
+    return score
+
+def depth_first_traversal(graph, start, destinations, max_length, elephant):
+    totalValves = sum([graph[x]['rate'] for x in destinations if graph[x]['rate'] > 0])
+
+    def helper(node, visited, length, highest):        
+        # Visit the current node if it has not already been visited
+        child_scores = []
+        if node != start:
+            visited.append(node)
+            child_scores.append(score_perms(visited, totalValves, highest, graph, start, max_length, elephant))
+            highest = max(child_scores[0], highest)
+
+        # Recursively traverse each child of the current node
+        for child in destinations:
+            if child not in visited:
+                # only if the child isn't too long
+                distance = graph[node]['travel'][child] + length
+                if distance > max_length:
+                    continue
+
+                score = helper(child, visited.copy(), distance, highest)
+                if score > highest:
+                    highest = score
+
+                child_scores.append(score)
+        return highest
+
+    # Start the traversal at the root node
+    return  helper(start, [], 0, 0)
+
+
+
+start = "AA"
+tD = False
+input = testdata if tD else data
+graph = parse(input)
+destinations = get_destinations(graph)
+
+print("Calculate pathing...")
+work_out_pathing(graph, destinations)
 
 def part1():
-    tD = False
-    start = "AA"
-
-    max_length = 30
-    input = testdata if tD else data
-    graph = parse(input)
-    destinations = get_destinations(graph)
-
-    print("Calculate pathing...")
-    work_out_pathing(graph, destinations)
-
-    print("Generating permutations...")
-    perms = generate_perms(graph, start, destinations, max_length)
-
-    print("Scoring...")
-    best_perm = score_perms(graph, start, destinations, perms, max_length)
-    return best_perm
+    return depth_first_traversal(graph, start, destinations, 30, False)
     
 def part2():
-    tD = True
-    start = "AA"
-
-    max_length = 26
-    input = testdata if tD else data
-    graph = parse(input)
-    destinations = get_destinations(graph)
-
-    print("Calculate pathing...")
-    work_out_pathing(graph, destinations)
-
-    print("Generating permutations...")
-    perms = generate_perms(graph, start, destinations, max_length)
-
-    print(len(perms))
-
-    perms = [[
-        [destinations.index(x) for x in ["JJ", "BB", "CC"]],
-        [destinations.index(x) for x in ["DD", "HH", "EE"]],
-    ]]
-
-    print("Scoring...")
-    best_perm = score_perms(graph, start, destinations, perms, max_length)
-    return best_perm
+    return depth_first_traversal(graph, start, destinations, 26, True)
 
 if __name__ == "__main__":
     print("-- AoC 2022 - Day 16 --\n")
-    # part("One", 16, 2022, part1, True)
-    part("Two", 16, 2022, part2, False)
+    part("One", 16, 2022, part1, False)
+    # part("Two", 16, 2022, part2, False)
 
-def generate_perms_p2(graph, start, destinations, max_length, o=2):
-    n = len(destinations)
-    nset = set(range(n))
-    def inner(p):
-        l = len(p)
-        if l > 1:
-            length = get_length(graph, p, start, destinations)
-            if length > max_length:
-                retVal = []
-                for i in range(o):
-                    retVal.append([p])
-                return retVal
-        if l == n:
-            retVal = []
-            for i in range(o):
-                retVal.append([p])
-            return retVal
-        r = []
-        for i in nset - set(p):
-            for rr in inner(p + (i,)):
-                r.append(rr)
-        return r
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# def generate_perms_p2(graph, start, destinations, max_length, o=2):
+#     n = len(destinations)
+#     nset = set(range(n))
+#     def inner(p):
+#         l = len(p)
+#         if l > 1:
+#             length = get_length(graph, p, start, destinations)
+#             if length > max_length:
+#                 retVal = []
+#                 for i in range(o):
+#                     retVal.append([p])
+#                 return retVal
+#         if l == n:
+#             retVal = []
+#             for i in range(o):
+#                 retVal.append([p])
+#             return retVal
+#         r = []
+#         for i in nset - set(p):
+#             for rr in inner(p + (i,)):
+#                 r.append(rr)
+#         return r
                 
-    return inner(())
+#     return inner(())
+
+
+
+
+    # current = [start]
+    # traverse(destinations, current.copy())
+    # print(c)
+
+
+    # return highest
+
+
+
+    # # push the first path into the queue
+    # queue.append([start])
+    # while queue:
+    #     # get the first path from the queue
+    #     path = queue.pop(0)
+    #     # get the last node from the path
+    #     node = path[-1]
+    #     # path found
+    #     if node == end:
+    #         return path
+    #     # enumerate all adjacent nodes, construct a 
+    #     # new path and push it into the queue
+    #     for adjacent in graph.get(node, []):
+    #         new_path = list(path)
+    #         new_path.append(adjacent)
+    #         queue.append(new_path)
+
+
+
+
+# def generate_perms(graph, start, destinations, max_length, elephant=False):
+    
+        
+#     n = len(destinations)
+#     nset = set(range(n))
+#     def inner(p):
+#         l = len(p)
+#         if l > 1:
+#             length = get_length(graph, p, start, destinations)
+#             if length > max_length:
+#                 score = score_perms(p, totalValves, highest, graph, start, destinations, max_length, elephant)
+#                 return [score]
+#         if l == n:
+#             return [p]
+#         return [r for i in nset - set(p)
+#                 for r in inner(p + (i,))]
+#     return inner(())
