@@ -132,16 +132,13 @@ def score_perms(perm, totalValves, highest, graph, start, max_length, elephant):
 
     return score
 
-def depth_first_traversal(graph, start, destinations, max_length, elephant):
-    totalValves = sum([graph[x]['rate'] for x in destinations if graph[x]['rate'] > 0])
-
+def depth_first_traversal(graph, start, destinations, max_length):
     def helper(node, visited, length, highest):        
         # Visit the current node if it has not already been visited
-        child_scores = []
         if node != start:
             visited.append(node)
-            child_scores.append(score_perms(visited, totalValves, highest, graph, start, max_length, elephant))
-            highest = max(child_scores[0], highest)
+            score = score_perms(visited, totalValves, highest, graph, start, max_length, False)
+            highest = max(score, highest)
 
         # Recursively traverse each child of the current node
         for child in destinations:
@@ -154,8 +151,6 @@ def depth_first_traversal(graph, start, destinations, max_length, elephant):
                 score = helper(child, visited.copy(), distance, highest)
                 if score > highest:
                     highest = score
-
-                child_scores.append(score)
         return highest
 
     # Start the traversal at the root node
@@ -163,25 +158,65 @@ def depth_first_traversal(graph, start, destinations, max_length, elephant):
 
 
 
+def depth_first_traversal_elephant(graph, start, destinations, max_length):
+    def helper(node, visited, human_length, elephant_length, highest, human):        
+        # Visit the current node if it has not already been visited
+        child_scores = []
+        new_visited = [visited[0].copy(), visited[1].copy()]
+        if node != start:
+            if human:
+                new_visited[0].append(node)
+            else:
+                new_visited[1].append(node)
+            child_scores.append(score_perms(new_visited, totalValves, highest, graph, start, max_length, True))
+            highest = max(child_scores[0], highest)
+
+        # Recursively traverse each child of the current node
+        for child in destinations:
+            if child not in new_visited[0] and child not in new_visited[1]:
+                # only if the child isn't too long
+                distanceHuman = graph[node]['travel'][child] + human_length
+                distanceElephant = graph[node]['travel'][child] + elephant_length
+
+                if distanceHuman < max_length:
+                    score = helper(child, new_visited, distanceHuman, distanceElephant, highest, True)
+                    if score > highest:
+                        highest = score
+                
+                if distanceElephant < max_length:
+                    score = helper(child, new_visited, distanceHuman, distanceElephant, highest, False)
+                    if score > highest:
+                        highest = score
+
+        return highest
+
+    # Start the traversal at the root node
+    human_score = helper(start, [[], []], 0, 0, 0, True)
+    ele_score = helper(start, [[], []], 0, 0, 0, False)
+    return max(human_score, ele_score)
+
+
 start = "AA"
 tD = False
 input = testdata if tD else data
 graph = parse(input)
 destinations = get_destinations(graph)
+totalValves = sum([graph[x]['rate'] for x in destinations if graph[x]['rate'] > 0])
 
 print("Calculate pathing...")
 work_out_pathing(graph, destinations)
 
 def part1():
-    return depth_first_traversal(graph, start, destinations, 30, False)
+    return depth_first_traversal(graph, start, destinations, 30)
     
 def part2():
-    return depth_first_traversal(graph, start, destinations, 26, True)
+    # assert score_perms([["JJ", "BB", "CC"], ["DD", "HH", "EE"]], totalValves, 0, graph, "AA", 26, True) == 1707
+    return depth_first_traversal_elephant(graph, start, destinations, 26)
 
 if __name__ == "__main__":
     print("-- AoC 2022 - Day 16 --\n")
-    part("One", 16, 2022, part1, False)
-    # part("Two", 16, 2022, part2, False)
+    # part("One", 16, 2022, part1, False)
+    part("Two", 16, 2022, part2, False)
 
 
 
