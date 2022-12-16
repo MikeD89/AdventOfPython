@@ -1,5 +1,6 @@
 # AoC 2022 - Day 16 - Mike D
 from itertools import product
+import json
 import sys
 import os
 from itertools import permutations
@@ -95,20 +96,11 @@ def get_length(graph, points, start, destinations):
         last = current
     return sum(l)
 
-def score_perms(perm, totalValves, highest, graph, start, max_length, elephant):
-    state = []
-    state.append({
-        'points': list(perm) if not elephant else list(perm[0]),
-        'moving': -1,
-        'current': start
-    })
-    if elephant:
-        state.append({
-            'points': list(perm[1]) if elephant else [],
-            'moving': -1,
-            'current': start
-        })
-
+def score_perms(perm, totalValves, highest, graph, start, max_length):
+    points = list(perm)
+    moving = -1
+    current = start
+        
     score=0
     open=0
     for i in range(max_length):
@@ -117,27 +109,30 @@ def score_perms(perm, totalValves, highest, graph, start, max_length, elephant):
         remaining = (totalValves) * (max_length - i)
         if((score + remaining) < highest):
             return 0
-
-        for person in state:                
-            if person['moving'] <= 0 and len(person['points']) > 0:
-                # move
-                next = person['points'].pop(0)
-                person['moving'] = graph[person['current']]['travel'][next]
-                person['current'] = next
-            else:
-                person['moving'] -= 1
-                if person['moving'] == 0:
-                    # open
-                    open += graph[person['current']]['rate']
+            
+        if moving <= 0 and len(points) > 0:
+            # move
+            next = points.pop(0)
+            moving = graph[current]['travel'][next]
+            current = next
+        else:
+            moving -= 1
+            if moving == 0:
+                # open
+                open += graph[current]['rate']
 
     return score
 
 def depth_first_traversal(graph, start, destinations, max_length):
-    def helper(node, visited, length, highest):        
+    data = []
+    def helper(node, visited, length, highest): 
+        nonlocal data       
         # Visit the current node if it has not already been visited
         if node != start:
             visited.append(node)
-            score = score_perms(visited, totalValves, highest, graph, start, max_length, False)
+            score = score_perms(visited, totalValves, highest, graph, start, max_length)
+            if(score != 0):
+                data.append([score, visited.copy()])
             highest = max(score, highest)
 
         # Recursively traverse each child of the current node
@@ -154,47 +149,7 @@ def depth_first_traversal(graph, start, destinations, max_length):
         return highest
 
     # Start the traversal at the root node
-    return  helper(start, [], 0, 0)
-
-
-
-def depth_first_traversal_elephant(graph, start, destinations, max_length):
-    def helper(node, visited, human_length, elephant_length, highest, human):        
-        # Visit the current node if it has not already been visited
-        child_scores = []
-        new_visited = [visited[0].copy(), visited[1].copy()]
-        if node != start:
-            if human:
-                new_visited[0].append(node)
-            else:
-                new_visited[1].append(node)
-            child_scores.append(score_perms(new_visited, totalValves, highest, graph, start, max_length, True))
-            highest = max(child_scores[0], highest)
-
-        # Recursively traverse each child of the current node
-        for child in destinations:
-            if child not in new_visited[0] and child not in new_visited[1]:
-                # only if the child isn't too long
-                distanceHuman = graph[node]['travel'][child] + human_length
-                distanceElephant = graph[node]['travel'][child] + elephant_length
-
-                if distanceHuman < max_length:
-                    score = helper(child, new_visited, distanceHuman, distanceElephant, highest, True)
-                    if score > highest:
-                        highest = score
-                
-                if distanceElephant < max_length:
-                    score = helper(child, new_visited, distanceHuman, distanceElephant, highest, False)
-                    if score > highest:
-                        highest = score
-
-        return highest
-
-    # Start the traversal at the root node
-    human_score = helper(start, [[], []], 0, 0, 0, True)
-    ele_score = helper(start, [[], []], 0, 0, 0, False)
-    return max(human_score, ele_score)
-
+    return  helper(start, [], 0, 0), data
 
 start = "AA"
 tD = False
@@ -207,104 +162,28 @@ print("Calculate pathing...")
 work_out_pathing(graph, destinations)
 
 def part1():
-    return depth_first_traversal(graph, start, destinations, 30)
+    p1A, _ = depth_first_traversal(graph, start, destinations, 30)
+    return p1A
     
 def part2():
-    # assert score_perms([["JJ", "BB", "CC"], ["DD", "HH", "EE"]], totalValves, 0, graph, "AA", 26, True) == 1707
-    return depth_first_traversal_elephant(graph, start, destinations, 26)
+    global destinations
+
+    # naive approach - lets take the best possible human path and have nelly hoover up the rest
+    # this is way faster than part 1 - note to self - reduce the time dimension first!!!!!
+
+    human_answer, data = depth_first_traversal(graph, start, destinations, 26)
+
+    all_humans = [x[1] for x in data if x[0] == human_answer]
+    all_humans.sort(key=lambda x: len(x))
+    shortest = all_humans[0]
+
+    # get the destinations that are not in the shortest path
+    elephant_destinations = [x for x in destinations if x not in shortest]
+    elephant_answer, data = depth_first_traversal(graph, start, elephant_destinations, 26)
+    
+    return human_answer + elephant_answer
 
 if __name__ == "__main__":
     print("-- AoC 2022 - Day 16 --\n")
-    # part("One", 16, 2022, part1, False)
-    part("Two", 16, 2022, part2, False)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# def generate_perms_p2(graph, start, destinations, max_length, o=2):
-#     n = len(destinations)
-#     nset = set(range(n))
-#     def inner(p):
-#         l = len(p)
-#         if l > 1:
-#             length = get_length(graph, p, start, destinations)
-#             if length > max_length:
-#                 retVal = []
-#                 for i in range(o):
-#                     retVal.append([p])
-#                 return retVal
-#         if l == n:
-#             retVal = []
-#             for i in range(o):
-#                 retVal.append([p])
-#             return retVal
-#         r = []
-#         for i in nset - set(p):
-#             for rr in inner(p + (i,)):
-#                 r.append(rr)
-#         return r
-                
-#     return inner(())
-
-
-
-
-    # current = [start]
-    # traverse(destinations, current.copy())
-    # print(c)
-
-
-    # return highest
-
-
-
-    # # push the first path into the queue
-    # queue.append([start])
-    # while queue:
-    #     # get the first path from the queue
-    #     path = queue.pop(0)
-    #     # get the last node from the path
-    #     node = path[-1]
-    #     # path found
-    #     if node == end:
-    #         return path
-    #     # enumerate all adjacent nodes, construct a 
-    #     # new path and push it into the queue
-    #     for adjacent in graph.get(node, []):
-    #         new_path = list(path)
-    #         new_path.append(adjacent)
-    #         queue.append(new_path)
-
-
-
-
-# def generate_perms(graph, start, destinations, max_length, elephant=False):
-    
-        
-#     n = len(destinations)
-#     nset = set(range(n))
-#     def inner(p):
-#         l = len(p)
-#         if l > 1:
-#             length = get_length(graph, p, start, destinations)
-#             if length > max_length:
-#                 score = score_perms(p, totalValves, highest, graph, start, destinations, max_length, elephant)
-#                 return [score]
-#         if l == n:
-#             return [p]
-#         return [r for i in nset - set(p)
-#                 for r in inner(p + (i,))]
-#     return inner(())
+    part("One", 16, 2022, part1, True)
+    part("Two", 16, 2022, part2, True)
