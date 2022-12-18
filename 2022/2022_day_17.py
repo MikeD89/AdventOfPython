@@ -51,7 +51,6 @@ class data:
         self.cycle = -1
         self.x = 0
         self.y = 0
-        self.rock_count = -1
         self.falling = False
         self.shape = None
 
@@ -150,15 +149,18 @@ def print_debug(d):
                     c[d.y+j][d.x+k] = '@'
     print_grid(c)
 
-def check_p1_exit(d, total_rocks):
-    if not d.falling:
-        d.rock_count += 1
-        if d.rock_count > total_rocks:
-            return len(d.chamber) - headroom + d.removed
-    return None
+def check_for_early_exit(d: data, rock):
+    if d.cycle > 0 and d.cycle % len(d.wind) == 0 and rock % len(rocks) == 0:
+        print("early?")
+    return False
+
+def early_exit_score(d):
+    return 1337
 
 def cycle(total_rocks, d, debug):
     for rock in tqdm(range(total_rocks+1)):
+        if check_for_early_exit(d, rock):
+            return early_exit_score(d)
         check_headroom(d)
         check_next_shape(d, rock)
         
@@ -182,4 +184,4 @@ def part2():
 if __name__ == "__main__":
     print("-- AoC 2022 - Day 17 --\n")
     part("One", 17, 2022, part1, False)
-    part("Two", 17, 2022, part2, True)
+    part("Two", 17, 2022, part2, False)
