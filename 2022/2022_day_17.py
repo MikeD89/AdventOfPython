@@ -7,13 +7,20 @@ from aocd import get_data, submit
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from utils import *
 
-data = get_data(day=17, year=2022)
+input_data = get_data(day=17, year=2022)
+testdata = ">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>"
+# testdata = "."
 
 horizontal = [['#','#','#','#']]
 plus = [
     ['.', '#', '.'],
     ['#', '#', '#'],
     ['.', '#', '.']
+]
+invplus = [
+    ['.', '#', '.'],
+    ['#', '#', '#'],
+    ['#', '.', '#']
 ]
 lshape = [
     ['.','.','#'],
@@ -31,122 +38,161 @@ square = [
     ['#','#']
 ]
 
-testdata = ">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>"
 rocks = [horizontal, plus, lshape, line, square]
 width = 7
 headroom = 7
 
-debug = True
+# TD
+# testdata = ">>>><<<<<<>>>>>><<<<<<>>>>>>"
+# linething = [
+#     ['#','#','#','#','#'],
+#     ['.','.','.','.','#'],
+#     ['.','.','.','.','#'],
+# ]
 
-def add_rows(chamber, n):
+# rocks = [linething, square]
+# TD
+
+class data:
+    def __init__(self, wind):
+        self.chamber = []
+        self.wind = wind
+        self.i = -1
+        self.x = 0
+        self.y = 0
+        self.nextshape = 0
+        self.rock_count = -1
+        self.falling = False
+        self.shape = None
+
+def add_rows(d, n):
     for i in range(n):
         row = ['.'] * width
-        chamber.insert(0, row)
-    return chamber
+        d.chamber.insert(0, row)
 
-def cycle(n, wind, chamber):
-    nextshape = 0
-    falling = False
-    x = 0
-    y = 0
-    shape = None
-    
-    for i in range(n):
-        if debug:
-            print(i)
+def check_headroom(d):
+    # check headroom
+    h = 0
+    if not d.falling:
+        for j in range(headroom):
+            if d.chamber[j].count('#') > 0:
+                h += 1
+        add_rows(d, h)
 
-        # check headroom
-        h = 0
-        if not falling:
-            for j in range(headroom):
-                if chamber[j].count('#') > 0:
-                    h += 1
-            chamber = add_rows(chamber, h)
+def check_next_shape(d):
+    # do we have a shape?
+    if not d.falling:
+        d.shape = rocks[d.nextshape]
+        d.nextshape = (d.nextshape + 1) % len(rocks)
+        d.x = 2
+        d.y = 4 - len(d.shape)
+        d.falling = True
 
-        # what do we do?
-        action = wind[i % len(wind)]
-        if debug:
-            print(x, y, falling, action)
-        
-        # do we have a shape?
-        if not falling:
-            shape = rocks[nextshape]
-            nextshape = (nextshape + 1) % len(rocks)
-            x = 2
-            y = 4 - len(shape)
-            falling = True
+def blow_wind(d):
+    action = d.wind[d.i % len(d.wind)]
+    good = False
+    right = action == '>'
 
-        # wind
-        if action == '>':
-            if not x + 1 > width - len(shape[0]):
-                good = True
-                for j in range (len(shape)):
-                    if chamber[y+j][x+len(shape[0])] == '#':
-                        good = False
-                        break
+    if right and not d.x + 1 > width - len(d.shape[0]):
+        good = True
+    elif not right and not d.x - 1 < 0:
+        good = True
+       
+    # check every point in d.shape can move in d.chamber
+    if good:
+        for i in range (len(d.shape)):
+            for j in range (len(d.shape[i])):
+                chamber_x = d.x+j+1 if right else d.x+j-1
 
-                if good:
-                    x += 1
-        elif action == '<':
-            if not x - 1 < 0:
-                good = True
-                for j in range (len(shape)):
-                    if chamber[y+j][x-1] == '#':
-                        good = False
-                        break
-                if good:
-                    x -= 1
-
-        # gravity 
-        gravity = y + len(shape) < len(chamber)
-        if gravity: 
-            for j in range (len(shape[0])):
-                if chamber[y+len(shape)][x+j] != '.':
-                    gravity = False
-        if gravity:
-            y += 1
-        else:
-            falling = False
-            for l in range(len(shape)):
-                for m in range(len(shape[l])):
-                    if shape[l][m] == '#':
-                        chamber[y+l][x+m] = '#'
-        
-        # shape collision
-        for j in range(len(shape)):
-            for k in range(len(shape[j])):
-                if shape[j][k] == '#':
-                    if chamber[y+j][x+k] == '#':
-                        falling = False
-                        for l in range(len(shape)):
-                            for m in range(len(shape[l])):
-                                if shape[l][m] == '#':
-                                    chamber[y+l][x+m] = '#'
-                        break
-            if not falling:
+                if d.shape[i][j] == '#' and d.chamber[d.y+i][chamber_x] == '#':
+                    good = False
+                    break
+            if not good:
                 break
 
-        # print
-        if debug:
-            c = copy.deepcopy(chamber)
-            if falling:
-                for j in range(len(shape)):
-                    for k in range(len(shape[j])):
-                        if shape[j][k] == '#':
-                            c[y+j][x+k] = '@'
-            print_grid(c)
+    if good and right:
+        d.x += 1
+        return True
+    elif good and not right:
+        d.x -= 1
+        return True
+    return False
 
+def handle_gravity(d, slide):
+    gravity = d.y + len(d.shape) < len(d.chamber)
+    if gravity: 
+        for i in range (len(d.shape)):
+            for j in range (len(d.shape[i])):
+                if d.shape[i][j] == '#':
+                    if d.chamber[d.y+i+1][d.x+j] != '.':
+                        gravity = False
+    if gravity:
+        d.y += 1
+    else:
+        d.falling = False
+        for l in range(len(d.shape)):
+            for m in range(len(d.shape[l])):
+                if d.shape[l][m] == '#':
+                    d.chamber[d.y+l][d.x+m] = '#'
+
+def handle_collision(d):
+    for j in range(len(d.shape)):
+        for k in range(len(d.shape[j])):
+            if d.shape[j][k] == '#':
+                if d.chamber[d.y+j][d.x+k] == '#':
+                    d.falling = False
+                    for l in range(len(d.shape)):
+                        for m in range(len(d.shape[l])):
+                            if d.shape[l][m] == '#':
+                                d.chamber[d.y+l][d.x+m] = '#'
+                    break
+        if not d.falling:
+            break
+
+def print_debug(d):
+    action = d.wind[d.i % len(d.wind)]
+    print(d.i, d.falling, action)
+    c = copy.deepcopy(d.chamber)
+    if d.falling:
+        for j in range(0, min(25, len(d.shape))):
+            for k in range(len(d.shape[j])):
+                if d.shape[j][k] == '#':
+                    c[d.y+j][d.x+k] = '@'
+    print_grid(c)
+
+def check_p1_exit(d, total_rocks):
+    if not d.falling:
+        d.rock_count += 1
+        if d.rock_count > total_rocks:
+            return len(d.chamber)
+    return None
+
+def cycle(total_rocks, d, debug):
+    add_rows(d, headroom)
+    
+    while True:
+        exit = check_p1_exit(d, total_rocks)
+        if exit:
+            return exit
+
+        d.i += 1
+        check_headroom(d)
+        check_next_shape(d)
+        slide = blow_wind(d)
+        handle_gravity(d, slide)
+        handle_collision(d)
+        if debug:
+            print_debug(d)
 
 def part1():
-    chamber = add_rows([], headroom)
-    cycle(1000, testdata, chamber)
-    return None
+    d = data(input_data)
+    return cycle(2022, d, False) - headroom
     
 def part2():
-    input = testdata
-    return None
+    d = data(input_data)
+    return cycle(1000000000000, d, False) - headroom
 
 if __name__ == "__main__":
     print("-- AoC 2022 - Day 17 --\n")
     part("One", 17, 2022, part1, False)
-    part("Two", 17, 2022, part2, False)
+    # part("Two", 17, 2022, part2, False)

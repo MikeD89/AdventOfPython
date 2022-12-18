@@ -34,7 +34,11 @@ def tests(runner, do):
     print()
 
 def get_testdata(day, year):
-    testdata_path = os.path.join(os.path.dirname(__file__), str(year),  "testdata", str(year) + "_day_" + f"{day:02}" + ".txt")
+    filename = str(year) + "_day_" + f"{day:02}" + ".txt"
+    return load_testdata(filename)
+
+def load_testdata(year, filename):
+    testdata_path = os.path.join(os.path.dirname(__file__), str(year),  "testdata", filename)
     return open(testdata_path, "r").read()
 
 def make_grid(w, h, fill):
