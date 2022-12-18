@@ -4,12 +4,12 @@ import os
 import string
 import copy
 from aocd import get_data, submit
+from tqdm import tqdm
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from utils import *
 
 input_data = get_data(day=17, year=2022)
 testdata = ">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>"
-# testdata = "."
 
 horizontal = [['#','#','#','#']]
 plus = [
@@ -41,26 +41,16 @@ square = [
 rocks = [horizontal, plus, lshape, line, square]
 width = 7
 headroom = 7
-
-# TD
-# testdata = ">>>><<<<<<>>>>>><<<<<<>>>>>>"
-# linething = [
-#     ['#','#','#','#','#'],
-#     ['.','.','.','.','#'],
-#     ['.','.','.','.','#'],
-# ]
-
-# rocks = [linething, square]
-# TD
+limit = 100
 
 class data:
     def __init__(self, wind):
-        self.chamber = []
+        self.removed = 0
+        self.chamber = make_grid(width, headroom, ".")
         self.wind = wind
-        self.i = -1
+        self.cycle = -1
         self.x = 0
         self.y = 0
-        self.nextshape = 0
         self.rock_count = -1
         self.falling = False
         self.shape = None
@@ -77,19 +67,22 @@ def check_headroom(d):
         for j in range(headroom):
             if d.chamber[j].count('#') > 0:
                 h += 1
-        add_rows(d, h)
 
-def check_next_shape(d):
+        add_rows(d, h)
+        if len(d.chamber) > limit:
+            d.removed += len(d.chamber) - limit
+            d.chamber = d.chamber[:limit]
+
+def check_next_shape(d, rock):
     # do we have a shape?
     if not d.falling:
-        d.shape = rocks[d.nextshape]
-        d.nextshape = (d.nextshape + 1) % len(rocks)
+        d.shape = rocks[rock % len(rocks)]
         d.x = 2
         d.y = 4 - len(d.shape)
         d.falling = True
-
+        
 def blow_wind(d):
-    action = d.wind[d.i % len(d.wind)]
+    action = d.wind[d.cycle % len(d.wind)]
     good = False
     right = action == '>'
 
@@ -112,13 +105,10 @@ def blow_wind(d):
 
     if good and right:
         d.x += 1
-        return True
     elif good and not right:
         d.x -= 1
-        return True
-    return False
 
-def handle_gravity(d, slide):
+def handle_gravity(d):
     gravity = d.y + len(d.shape) < len(d.chamber)
     if gravity: 
         for i in range (len(d.shape)):
@@ -150,8 +140,8 @@ def handle_collision(d):
             break
 
 def print_debug(d):
-    action = d.wind[d.i % len(d.wind)]
-    print(d.i, d.falling, action)
+    action = d.wind[d.cycle % len(d.wind)]
+    print(d.cycle, d.falling, action)
     c = copy.deepcopy(d.chamber)
     if d.falling:
         for j in range(0, min(25, len(d.shape))):
@@ -164,35 +154,32 @@ def check_p1_exit(d, total_rocks):
     if not d.falling:
         d.rock_count += 1
         if d.rock_count > total_rocks:
-            return len(d.chamber)
+            return len(d.chamber) - headroom + d.removed
     return None
 
 def cycle(total_rocks, d, debug):
-    add_rows(d, headroom)
-    
-    while True:
-        exit = check_p1_exit(d, total_rocks)
-        if exit:
-            return exit
-
-        d.i += 1
+    for rock in tqdm(range(total_rocks+1)):
         check_headroom(d)
-        check_next_shape(d)
-        slide = blow_wind(d)
-        handle_gravity(d, slide)
-        handle_collision(d)
-        if debug:
-            print_debug(d)
+        check_next_shape(d, rock)
+        
+        while d.falling:
+            d.cycle += 1
+            blow_wind(d)
+            handle_gravity(d)
+            handle_collision(d)
+            if debug:
+                print_debug(d)
+    return len(d.chamber) - headroom + d.removed
 
 def part1():
     d = data(input_data)
-    return cycle(2022, d, False) - headroom
+    return cycle(2022, d, False)
     
 def part2():
     d = data(input_data)
-    return cycle(1000000000000, d, False) - headroom
+    return cycle(1000000000000, d, False) 
 
 if __name__ == "__main__":
     print("-- AoC 2022 - Day 17 --\n")
     part("One", 17, 2022, part1, False)
-    # part("Two", 17, 2022, part2, False)
+    part("Two", 17, 2022, part2, True)
