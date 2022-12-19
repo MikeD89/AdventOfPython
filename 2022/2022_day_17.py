@@ -48,11 +48,13 @@ class data:
         self.removed = 0
         self.chamber = make_grid(width, headroom, ".")
         self.wind = wind
-        self.cycle = -1
+        self.cycle = 0
         self.x = 0
         self.y = 0
         self.falling = False
         self.shape = None
+        self.startcycle = 0
+        self.rockid = 0
 
 def add_rows(d, n):
     for i in range(n):
@@ -68,17 +70,19 @@ def check_headroom(d):
                 h += 1
 
         add_rows(d, h)
-        if len(d.chamber) > limit:
-            d.removed += len(d.chamber) - limit
-            d.chamber = d.chamber[:limit]
+        # if len(d.chamber) > limit:
+        #     d.removed += len(d.chamber) - limit
+        #     d.chamber = d.chamber[:limit]
 
 def check_next_shape(d, rock):
     # do we have a shape?
     if not d.falling:
+        d.rockid = rock % len(rocks)
         d.shape = rocks[rock % len(rocks)]
         d.x = 2
         d.y = 4 - len(d.shape)
         d.falling = True
+        d.startcycle = d.cycle
         
 def blow_wind(d):
     action = d.wind[d.cycle % len(d.wind)]
@@ -150,27 +154,47 @@ def print_debug(d):
     print_grid(c)
 
 def check_for_early_exit(d: data, rock):
-    if d.cycle > 0 and d.cycle % len(d.wind) == 0 and rock % len(rocks) == 0:
-        print("early?")
-    return False
+    blocky = d.y + len(d.shape) - 1
 
-def early_exit_score(d):
-    return 1337
+    # full row?
+    if d.chamber[blocky].count('#') == width:
+        print_grid(d.chamber)
+        print("full row")
+        # trim
+        d.chamber = d.chamber[:blocky] 
+
+        print_grid(d.chamber)
+        print()
+    return None
+
+    # print(d.chamber[blocky])
+
+    # did the wind loop?
+    # endingAction = d.cycle % len(d.wind)
+    # startingAction = d.startcycle % len(d.wind)
+
+    # if d.rockid == 4 and (endingAction < startingAction):
+    #     print("wind loop")
+    # # if d.cycle > 0 and d.cycle % len(d.wind) == 0 and rock % len(rocks) == 0:
+    # #     print("early?")
+    # return None
 
 def cycle(total_rocks, d, debug):
-    for rock in tqdm(range(total_rocks+1)):
-        if check_for_early_exit(d, rock):
-            return early_exit_score(d)
+    for rock in range(total_rocks+1):
         check_headroom(d)
         check_next_shape(d, rock)
         
         while d.falling:
-            d.cycle += 1
             blow_wind(d)
             handle_gravity(d)
             handle_collision(d)
             if debug:
                 print_debug(d)
+
+        early_exit = check_for_early_exit(d, rock)
+        if early_exit != None:
+            return early_exit
+        d.cycle += 1
     return len(d.chamber) - headroom + d.removed
 
 def part1():
@@ -183,5 +207,5 @@ def part2():
 
 if __name__ == "__main__":
     print("-- AoC 2022 - Day 17 --\n")
-    part("One", 17, 2022, part1, False)
+    # part("One", 17, 2022, part1, False)
     part("Two", 17, 2022, part2, False)
