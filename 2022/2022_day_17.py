@@ -55,6 +55,8 @@ class data:
         self.shape = None
         self.startcycle = 0
         self.rockid = 0
+        self.additional_height = 0
+        self.states = []
 
 def add_rows(d, n):
     for i in range(n):
@@ -62,17 +64,12 @@ def add_rows(d, n):
         d.chamber.insert(0, row)
 
 def check_headroom(d):
-    # check headroom
     h = 0
     if not d.falling:
         for j in range(headroom):
             if d.chamber[j].count('#') > 0:
                 h += 1
-
         add_rows(d, h)
-        # if len(d.chamber) > limit:
-        #     d.removed += len(d.chamber) - limit
-        #     d.chamber = d.chamber[:limit]
 
 def check_next_shape(d, rock):
     # do we have a shape?
@@ -86,6 +83,7 @@ def check_next_shape(d, rock):
         
 def blow_wind(d):
     action = d.wind[d.cycle % len(d.wind)]
+    d.cycle += 1
     good = False
     right = action == '>'
 
@@ -153,34 +151,39 @@ def print_debug(d):
                     c[d.y+j][d.x+k] = '@'
     print_grid(c)
 
-def check_for_early_exit(d: data, rock):
-    blocky = d.y + len(d.shape) - 1
+def check_for_cycles(d: data, total_rocks, rock):
+    if d.additional_height == 0:
+        cols = []
+        for column in range(len(d.chamber[0])):
+            max_col = -1
+            for row in range(len(d.chamber)):
+                if d.chamber[row][column] == '#':
+                    max_col = row
+                    break
+            cols.append(max_col)
 
-    # full row?
-    if d.chamber[blocky].count('#') == width:
-        print_grid(d.chamber)
-        print("full row")
-        # trim
-        d.chamber = d.chamber[:blocky] 
+        height = len(d.chamber) - headroom
+        smol = min(cols)
+        cols = [c - smol for c in cols]
 
-        print_grid(d.chamber)
-        print()
-    return None
+        cols.append(rock % len(rocks))
+        cols.append(d.cycle % len(d.wind))
+        cols = tuple(cols)
 
-    # print(d.chamber[blocky])
+        if cols in d.states:
+            remaining = total_rocks - rock
+            cycles = remaining//rock
+            leftover = remaining % rock
+            d.additional_height = height * cycles
+            return total_rocks - leftover
 
-    # did the wind loop?
-    # endingAction = d.cycle % len(d.wind)
-    # startingAction = d.startcycle % len(d.wind)
+        else:
+            d.states.append(cols)
+    return rock + 1
 
-    # if d.rockid == 4 and (endingAction < startingAction):
-    #     print("wind loop")
-    # # if d.cycle > 0 and d.cycle % len(d.wind) == 0 and rock % len(rocks) == 0:
-    # #     print("early?")
-    # return None
-
-def cycle(total_rocks, d, debug):
-    for rock in range(total_rocks+1):
+def cycle(total_rocks, d: data, debug):
+    rock = 0
+    while rock < total_rocks + 1:
         check_headroom(d)
         check_next_shape(d, rock)
         
@@ -191,11 +194,8 @@ def cycle(total_rocks, d, debug):
             if debug:
                 print_debug(d)
 
-        early_exit = check_for_early_exit(d, rock)
-        if early_exit != None:
-            return early_exit
-        d.cycle += 1
-    return len(d.chamber) - headroom + d.removed
+        rock = check_for_cycles(d, total_rocks, rock)
+    return len(d.chamber) - headroom + d.removed + d.additional_height
 
 def part1():
     d = data(input_data)

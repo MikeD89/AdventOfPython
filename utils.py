@@ -35,7 +35,7 @@ def tests(runner, do):
 
 def get_testdata(day, year):
     filename = str(year) + "_day_" + f"{day:02}" + ".txt"
-    return load_testdata(filename)
+    return load_testdata(year, filename)
 
 def load_testdata(year, filename):
     testdata_path = os.path.join(os.path.dirname(__file__), str(year),  "testdata", filename)
