@@ -2,6 +2,8 @@ import os
 import sys
 from aocd import get_data, submit
 
+from collections import defaultdict
+
 def time_it(func, name=None):
     import time
     def wrapper(*args, **kwargs):
@@ -46,3 +48,12 @@ def make_grid(w, h, fill):
 
 def print_grid(grid):
     print('\n'.join(''.join(str(x) for x in row) for row in grid))
+
+def load_into_default_dict(input, filler="."):
+    grid = defaultdict(lambda: defaultdict(lambda: filler))
+
+    for  index, line in enumerate(input):
+        for index_2, char in enumerate(line):
+            grid[index][index_2] = char
+
+    return grid
