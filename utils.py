@@ -11,7 +11,7 @@ def time_it(func, name=None):
         result = func(*args, **kwargs)
         end = time.time()
         n = name if name else func.__name__
-        print(f"-  Runtime: {end-start} seconds")
+        print(f"-  Runtime: {end-start:.4f} seconds")
         return result
     return wrapper
 
